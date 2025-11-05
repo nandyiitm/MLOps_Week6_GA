@@ -5,7 +5,7 @@ metadata:
   labels:
     app: iris-api
 spec:
-  replicas: 1                      # run 2 pods for high availability
+  replicas: 1
   selector:
     matchLabels:
       app: iris-api
@@ -20,7 +20,7 @@ spec:
           imagePullPolicy: Always
           ports:
             - containerPort: 8000
-          resources:                   # minimal resources
+          resources:
             requests:
               cpu: "50m"
               memory: "128Mi"
