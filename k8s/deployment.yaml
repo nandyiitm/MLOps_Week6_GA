@@ -19,7 +19,7 @@ spec:
           image: us-central1-docker.pkg.dev/euphoric-effect-473214-i3/my-repo/iris-api:latest
           imagePullPolicy: Always
           ports:
-            - containerPort: 8080
+            - containerPort: 8000
           resources:               # optional: limit CPU/memory
             requests:
               cpu: "100m"
