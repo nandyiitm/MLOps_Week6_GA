@@ -11,20 +11,26 @@ env:
   GKE_CLUSTER: iris-cluster
   GKE_ZONE: us-central1-c
   IMAGE_NAME: iris-api
-  NODE_POOL: default-pool
 
 jobs:
   train-build:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v3
-      - uses: actions/setup-python@v5
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
         with:
           python-version: '3.10'
-      - run: |
+
+      - name: Install dependencies and train model
+        run: |
           pip install -r requirements.txt
           python train_model.py
-      - uses: actions/upload-artifact@v4
+
+      - name: Upload model.pkl artifact
+        uses: actions/upload-artifact@v4
         with:
           name: model
           path: model.pkl
@@ -33,16 +39,25 @@ jobs:
     needs: train-build
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v3
-      - uses: actions/download-artifact@v4
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Download model.pkl
+        uses: actions/download-artifact@v4
         with:
           name: model
           path: .
-      - uses: google-github-actions/auth@v2
+
+      - name: Authenticate to GCP
+        uses: google-github-actions/auth@v2
         with:
           credentials_json: ${{ secrets.GCP_SA_KEY }}
-      - run: gcloud auth configure-docker $GAR_LOCATION-docker.pkg.dev
-      - run: |
+
+      - name: Configure Docker for Artifact Registry
+        run: gcloud auth configure-docker $GAR_LOCATION-docker.pkg.dev
+
+      - name: Build Docker image
+        run: |
           docker build -t $GAR_LOCATION-docker.pkg.dev/$PROJECT_ID/mlops/$IMAGE_NAME:latest .
           docker push $GAR_LOCATION-docker.pkg.dev/$PROJECT_ID/mlops/$IMAGE_NAME:latest
 
@@ -50,31 +65,22 @@ jobs:
     needs: docker-build-push
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v3
-      - uses: google-github-actions/auth@v2
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Authenticate to GCP
+        uses: google-github-actions/auth@v2
         with:
           credentials_json: ${{ secrets.GCP_SA_KEY }}
 
-      # 1️⃣ Create GKE cluster if it doesn't exist
-      - name: Create GKE cluster
-        run: |
-          gcloud container clusters describe $GKE_CLUSTER --zone $GKE_ZONE --project $PROJECT_ID || \
-          gcloud container clusters create $GKE_CLUSTER \
-            --zone $GKE_ZONE \
-            --num-nodes 1 \
-            --machine-type e2-small \
-            --project $PROJECT_ID
-
-      # 2️⃣ Get credentials for kubectl
-      - uses: google-github-actions/get-gke-credentials@v2
+      - name: Get GKE credentials
+        uses: google-github-actions/get-gke-credentials@v2
         with:
           cluster_name: ${{ env.GKE_CLUSTER }}
           location: ${{ env.GKE_ZONE }}
           project_id: ${{ env.PROJECT_ID }}
 
-      # 3️⃣ Deploy your app
-      - name: Deploy to GKE
+      - name: Deploy app and service to GKE
         run: |
-          kubectl apply -f k8s/ || \
-          kubectl set image deployment/iris-api iris-api=$GAR_LOCATION-docker.pkg.dev/$PROJECT_ID/mlops/$IMAGE_NAME:latest
+          kubectl apply -f k8s/
           kubectl rollout status deployment/iris-api
