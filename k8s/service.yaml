@@ -3,9 +3,9 @@ kind: Service
 metadata:
   name: iris-service
 spec:
-  type: LoadBalancer           # expose publicly on the internet
+  type: LoadBalancer
   selector:
     app: iris-api
   ports:
-    - port: 80
-      targetPort: 8000
+  - port: 80
+    targetPort: 8000
