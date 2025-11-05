@@ -4,3 +4,4 @@ fastapi
 pytest
 gunicorn
 uvicorn
+joblib
