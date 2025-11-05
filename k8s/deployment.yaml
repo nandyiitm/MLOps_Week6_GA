@@ -16,7 +16,7 @@ spec:
     spec:
       containers:
         - name: iris-api
-          image: us-central1-docker.pkg.dev/euphoric-effect-473214-i3/my-repo/iris-api:latest
+          image: us-central1-docker.pkg.dev/euphoric-effect-473214-i3/mlops/iris-api:latest
           imagePullPolicy: Always
           ports:
             - containerPort: 8000
