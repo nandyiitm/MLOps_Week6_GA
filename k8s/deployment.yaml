@@ -1,0 +1,29 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: iris-api
+  labels:
+    app: iris-api
+spec:
+  replicas: 1                      # run 2 pods for high availability
+  selector:
+    matchLabels:
+      app: iris-api
+  template:
+    metadata:
+      labels:
+        app: iris-api
+    spec:
+      containers:
+        - name: iris-api
+          image: us-central1-docker.pkg.dev/euphoric-effect-473214-i3/my-repo/iris-api:latest
+          imagePullPolicy: Always
+          ports:
+            - containerPort: 8080
+          resources:               # optional: limit CPU/memory
+            requests:
+              cpu: "100m"
+              memory: "256Mi"
+            limits:
+              cpu: "500m"
+              memory: "512Mi"
