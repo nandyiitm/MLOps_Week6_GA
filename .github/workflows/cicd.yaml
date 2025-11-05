@@ -8,7 +8,7 @@ on:
   workflow_dispatch:
 
 env:
-  PROJECT_ID: your-gcp-project-id
+  PROJECT_ID: euphoric-effect-473214-i3
   GAR_LOCATION: us-central1
   GKE_CLUSTER: iris-cluster
   GKE_ZONE: us-central1-c
