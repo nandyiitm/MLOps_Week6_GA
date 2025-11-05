@@ -1,86 +1,29 @@
-name: Train, Build, and Deploy to GKE
-
-on:
-  push:
-    branches: [ main ]
-  workflow_dispatch:
-
-env:
-  PROJECT_ID: euphoric-effect-473214-i3
-  GAR_LOCATION: us-central1
-  GKE_CLUSTER: iris-cluster
-  GKE_ZONE: us-central1-c
-  IMAGE_NAME: iris-api
-
-jobs:
-  train-build:
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v3
-
-      - name: Set up Python
-        uses: actions/setup-python@v5
-        with:
-          python-version: '3.10'
-
-      - name: Install dependencies and train model
-        run: |
-          pip install -r requirements.txt
-          python train_model.py
-
-      - name: Upload model.pkl artifact
-        uses: actions/upload-artifact@v4
-        with:
-          name: model
-          path: model.pkl
-
-  docker-build-push:
-    needs: train-build
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v3
-
-      - name: Download model.pkl
-        uses: actions/download-artifact@v4
-        with:
-          name: model
-          path: .
-
-      - name: Authenticate to GCP
-        uses: google-github-actions/auth@v2
-        with:
-          credentials_json: ${{ secrets.GCP_SA_KEY }}
-
-      - name: Configure Docker for Artifact Registry
-        run: gcloud auth configure-docker $GAR_LOCATION-docker.pkg.dev
-
-      - name: Build Docker image
-        run: |
-          docker build -t $GAR_LOCATION-docker.pkg.dev/$PROJECT_ID/mlops/$IMAGE_NAME:latest .
-          docker push $GAR_LOCATION-docker.pkg.dev/$PROJECT_ID/mlops/$IMAGE_NAME:latest
-
-  deploy:
-    needs: docker-build-push
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v3
-
-      - name: Authenticate to GCP
-        uses: google-github-actions/auth@v2
-        with:
-          credentials_json: ${{ secrets.GCP_SA_KEY }}
-
-      - name: Get GKE credentials
-        uses: google-github-actions/get-gke-credentials@v2
-        with:
-          cluster_name: ${{ env.GKE_CLUSTER }}
-          location: ${{ env.GKE_ZONE }}
-          project_id: ${{ env.PROJECT_ID }}
-
-      - name: Deploy app and service to GKE
-        run: |
-          kubectl apply -f k8s/
-          kubectl rollout status deployment/iris-api
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: iris-api
+  labels:
+    app: iris-api
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: iris-api
+  template:
+    metadata:
+      labels:
+        app: iris-api
+    spec:
+      containers:
+        - name: iris-api
+          image: us-central1-docker.pkg.dev/euphoric-effect-473214-i3/mlops/iris-api:latest
+          imagePullPolicy: Always
+          ports:
+            - containerPort: 8000
+          resources:
+            requests:
+              cpu: "50m"
+              memory: "128Mi"
+            limits:
+              cpu: "200m"
+              memory: "256Mi"
